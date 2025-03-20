@@ -1,14 +1,30 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import "./App.css";
 
 function App() {
-  const [messages, setMessages] = useState(["hi there",'hello']);
+  const [messages, setMessages] = useState(["hi there", "hello"]);
+  const wsRef = useRef();
 
   useEffect(() => {
     const ws = new WebSocket("ws://localhost:8080");
     ws.onmessage = (event) => {
       setMessages((m) => [...m, event.data]);
     };
+    wsRef.current = ws;
+    ws.onopen = () => {
+      ws.send(
+        JSON.stringify({
+          type: "join",
+          payload: {
+            roomId: "red",
+          },
+        })
+      );
+    };
+
+    return ()=>{
+      ws.close();
+    }
   }, []);
 
   return (
@@ -22,8 +38,23 @@ function App() {
           ))}
         </div>
         <div className="w-full bg-white flex">
-          <input type="text" className="flex-1 p-4" />
-          <button className="bg-purple-600 text-white p-4">Send message</button>
+          <input id="message" type="text" className="flex-1 p-4" />
+          <button
+            onClick={() => {
+              const message = document.getElementById("message")?.value;
+              wsRef.current.send(
+                JSON.stringify({
+                  type: "chat",
+                  payload: {
+                    message: message,
+                  },
+                })
+              );
+            }}
+            className="bg-purple-600 text-white p-4"
+          >
+            Send message
+          </button>
         </div>
       </div>
     </div>
